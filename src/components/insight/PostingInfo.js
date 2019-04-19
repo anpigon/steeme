@@ -33,7 +33,7 @@ class PostingDetail extends React.Component {
                         ) : (<p>No Comment</p>)
                     }
                     <h3>Resteemed By</h3>
-                    {p.reblogged_by.length > 0 ? 
+                    {(p.reblogged_by||[]).length > 0 ? 
                         p.reblogged_by.map((id, index) =>
                         <span key={index} className="user_cell"><b>{id}</b></span>
                         ) : (<p>No resteem</p>)
@@ -158,7 +158,7 @@ class PostingInfo extends Component {
                         <Table.Cell onClick={() => this.detailPopup(index)}>{post.net_votes}</Table.Cell>
                         <Table.Cell>{post.children}</Table.Cell>
                         <Table.Cell onClick={() => this.detailPopup(index)}>{post.payout.toFixed(2)}</Table.Cell>
-                        <Table.Cell onClick={() => this.detailPopup(index)}>{post.reblogged_by.length}</Table.Cell>
+                        <Table.Cell onClick={() => this.detailPopup(index)}>{(post.reblogged_by||[]).length}</Table.Cell>
                         <Table.Cell>{post.created.split('T')[0]}</Table.Cell>
                     </Table.Row>)}
                 </Table.Body>

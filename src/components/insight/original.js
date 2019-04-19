@@ -78,7 +78,7 @@ class PostingDetail extends React.Component {
                         ) : (<p>No Comment</p>)
                     }
                     <h3>Resteemed By</h3>
-                    {p.reblogged_by.length > 0 ? 
+                    {(p.reblogged_by.length||[]) > 0 ? 
                         p.reblogged_by.map((id, index) =>
                         <span key={index} className="user_cell"><b>{id}</b></span>
                         ) : (<p>No resteem</p>)
@@ -195,7 +195,7 @@ class Posting extends React.Component {
                     <td className='right link' onClick={() => this.detailPopup(index)}>{post.net_votes}</td>
                     <td className='right'>{post.children}</td>
                     <td className='right link' onClick={() => this.detailPopup(index)}>{post.payout.toFixed(2)}</td>
-                    <td className='right link' onClick={() => this.detailPopup(index)}>{post.reblogged_by.length}</td>
+                    <td className='right link' onClick={() => this.detailPopup(index)}>{(post.reblogged_by||[]).length}</td>
                     <td className="hardshell">{post.created.split('T')[0]}</td>
                 </tr>
                 )}
@@ -478,7 +478,7 @@ class Resteem extends React.Component {
     }
     render () {
         var post_set = this.props.posts.slice();
-        post_set.sort(function(a, b) { return b.reblogged_by.length - a.reblogged_by.length});
+        post_set.sort(function(a, b) { return (b.reblogged_by||[]).length - (a.reblogged_by||[]).length});
 
         return (
             <div className="container" style={{width: '100%'}}>
@@ -491,7 +491,7 @@ class Resteem extends React.Component {
                     {post_set.slice(0,10).map((post, idx) =>
                         <li key={idx} className="list-group-item">
                         <a href={"http://steemit.com/@" + post.author + "/" + post.permlink} target="blank">{post.title}</a>
-                        <span className="badge">{post.reblogged_by.length}</span>
+                        <span className="badge">{(post.reblogged_by||[]).length}</span>
                         </li>)
                     }
                 </ul>
@@ -516,7 +516,7 @@ class Summary extends React.Component {
             average_sbd: (total_sbd/total_post).toFixed(2),
             average_vote: (total_vote/total_post).toFixed(2),
             average_comments: (total_comments/total_post).toFixed(2),
-            total_resteem: p.reduce((sum, post) => sum + post.reblogged_by.length, 0),
+            total_resteem: p.reduce((sum, post) => sum + (post.reblogged_by||[]).length, 0),
             seven_day_stat: []
         }
 

@@ -105,7 +105,7 @@ class PostView extends React.Component {
                         ) : (<p>No Vote</p>)
                     }
                     <h3>Resteemed By</h3>
-                    {p.reblogged_by.length > 0 ? 
+                    {(p.reblogged_by||[]).length > 0 ? 
                         p.reblogged_by.map((id, index) =>
                         <Label size='mini' key={index}>{id}</Label>
                         ) : (<p>No resteem</p>)
