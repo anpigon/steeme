@@ -6,8 +6,7 @@ import PostForm from 'components/PostForm';
 const Home = () => {
     return (
         <div>
-            <h1>New Steeme is Coming SOOOON! Meanwhile, use <a href="https://ianpark.github.io/steeme/">https://ianpark.github.io/steeme/</a></h1>
-            {/*
+            {/* <h1>New Steeme is Coming SOOOON! Meanwhile, use <a href="https://ianpark.github.io/steeme/">https://ianpark.github.io/steeme/</a></h1> */}
         <h1>Posting</h1>
         <Grid>
             <Grid.Column mobile={16} tablet={8} computer={8}><Segment><InsightForm/></Segment>
@@ -38,7 +37,6 @@ const Home = () => {
             <Grid.Column mobile={16} tablet={8} computer={8}><Segment>Steemian Health Check</Segment>
             </Grid.Column>
         </Grid>
-            */}
         </div>
     )
 };
