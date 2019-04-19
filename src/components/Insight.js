@@ -1,8 +1,14 @@
+import React, { Component } from 'react';
+import ReactDOM from 'react-dom';
+import $ from 'jquery';
+import steem from 'steem';
+import LZString from 'lz-string';
+import Chart from 'chart.js';
 
 window.steemit_user = ''
 window.steemit_posts = []
 
-class ControllPanel extends React.Component {
+class ControllPanel extends Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -621,25 +627,24 @@ class PostingAnalyser extends React.Component {
     }
 
     save_posts(err, result) {
-        if (err || !result || length.length == 0) {
+        if (err || !result || result.length == 0) {
             window.alert('Failed to load data');
             return;
         }
         // Sort each bundle
-        var is_fresh = window.steemit_posts.length == 0 ? true : result[0].post_id != window.steemit_posts[0].post_id;
+        var is_fresh = window.steemit_posts.length == 0 ? true : result[0].id != window.steemit_posts[0].id;
         if (result.length > 1 && is_fresh) {
             console.log('Posting received: ' + result.length);
             result.map(post => {
                 if (window.steemit_posts.length == 0 ||
-                    window.steemit_posts[window.steemit_posts.length-1].created != post.created) 
-                {
+                    window.steemit_posts[window.steemit_posts.length-1].created != post.created) {
                     window.steemit_posts.push(post);
                 }
             });
             this.get_post(result[result.length-1])
         } else {
             console.log('Posting is fully received. Start processing. ' + result.length)
-            // window.steemit_posts = window.steemit_posts.concat(result);
+            window.steemit_posts = window.steemit_posts.concat(result);
             var in_progress = window.steemit_posts.length;
             window.steemit_posts.map(post => {
                 function to_sbd(sbd) {
@@ -743,10 +748,4 @@ class PostingAnalyser extends React.Component {
     }
 }
 
-
-// var my_steemit_post = JSON.parse(localStorage.getItem("my_steemit_post")) || [];
-
-ReactDOM.render(
-    <PostingAnalyser/>,
-    document.getElementById('steem_insight')
-);
+export default PostingAnalyser;
