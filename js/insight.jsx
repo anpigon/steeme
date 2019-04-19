@@ -626,19 +626,20 @@ class PostingAnalyser extends React.Component {
             return;
         }
         // Sort each bundle
-        var is_fresh = window.steemit_posts.length == 0 ? true : result[0].id != window.steemit_posts[0].id;
+        var is_fresh = window.steemit_posts.length == 0 ? true : result[0].post_id != window.steemit_posts[0].post_id;
         if (result.length > 1 && is_fresh) {
             console.log('Posting received: ' + result.length);
             result.map(post => {
                 if (window.steemit_posts.length == 0 ||
-                    window.steemit_posts[window.steemit_posts.length-1].created != post.created) {
+                    window.steemit_posts[window.steemit_posts.length-1].created != post.created) 
+                {
                     window.steemit_posts.push(post);
                 }
             });
             this.get_post(result[result.length-1])
         } else {
             console.log('Posting is fully received. Start processing. ' + result.length)
-            window.steemit_posts = window.steemit_posts.concat(result);
+            // window.steemit_posts = window.steemit_posts.concat(result);
             var in_progress = window.steemit_posts.length;
             window.steemit_posts.map(post => {
                 function to_sbd(sbd) {
