@@ -78,6 +78,14 @@
 </html>
 <script type="text/javascript">
 steem.api.setOptions({ url: 'https://api.steemit.com' });
+
+// fixed
+steem.api.getRebloggedByAsync = (author, permlink) => {
+    return fetch('https://api.steemit.com', {
+        method: 'post',
+        body: JSON.stringify({jsonrpc:"2.0",method:"follow_api.get_reblogged_by",params:{author,permlink},id:1})
+    }).then(r => r.json()).then(({result}) => result)
+}
 </script>
 <script type="text/babel" src="./js/insight.jsx"></script>
 <script type="text/babel" src="./js/split.jsx"></script>
