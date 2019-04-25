@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="apple-touch-icon-precomposed" sizes="57x57" href="//steemit.com/images/favicons/apple-touch-icon-57x57.png" type="image/png" />
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="//steemit.com/images/favicons/apple-touch-icon-114x114.png" type="image/png" />
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="//steemit.com/images/favicons/apple-touch-icon-72x72.png" type="image/png" />
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="//steemit.com/images/favicons/apple-touch-icon-144x144.png" type="image/png" />
+    <link rel="apple-touch-icon-precomposed" sizes="60x60" href="//steemit.com/images/favicons/apple-touch-icon-60x60.png" type="image/png" />
+    <link rel="apple-touch-icon-precomposed" sizes="120x120" href="//steemit.com/images/favicons/apple-touch-icon-120x120.png" type="image/png" />
+    <link rel="apple-touch-icon-precomposed" sizes="76x76" href="//steemit.com/images/favicons/apple-touch-icon-76x76.png" type="image/png" />
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="//steemit.com/images/favicons/apple-touch-icon-152x152.png" type="image/png" />
+    <link rel="icon" type="image/png" href="//steemit.com/images/favicons/favicon-196x196.png" sizes="196x196" />
+    <link rel="icon" type="image/png" href="//steemit.com/images/favicons/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/png" href="//steemit.com/images/favicons/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="//steemit.com/images/favicons/favicon-16x16.png" sizes="16x16" />
+    <link rel="icon" type="image/png" href="//steemit.com/images/favicons/favicon-128.png" sizes="128x128" />
+    <title>스팀잇 업보팅 계산기</title>
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link href="//fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- IE8 에서 HTML5 요소와 미디어 쿼리를 위한 HTML5 shim 와 Respond.js -->
+    <!-- WARNING: Respond.js 는 당신이 file:// 을 통해 페이지를 볼 때는 동작하지 않습니다. -->
+    <!--[if lt IE 9]>
+      <script src="//oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="//oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+	<style>
+		* { font-size: 12px; }
+		.preview img { max-width:100% }
+		.preview .title {
+			overflow: hidden;
+			font-family: "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+			font-size: 240%;
+			font-weight: 800;
+			line-height: 1.2 !important;
+		}
+	</style>
+  </head>
+  <body>
+    <div id="app">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#"></a>
+      </nav>
+      <div class="container" style='padding-top:20px'>        
+        <div class="row">
+          <div class="col-lg-6">
+			      <div class="form-row">
+              <div class="form-group col-12">
+                <div class="input-group input-group-sm">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text"><i class="material-icons">link</i></span>
+                  </div>
+                  <input type="text" placeholder="Url" class="form-control" v-model="url" aria-label="Url" aria-describedby="basic-addon1">
+                  <div class="input-group-append">
+                    <button type="button" class="btn btn-outline-secondary pb-0" @click="getContent">
+                      <i class="material-icons">search</i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+			  <div class="card-header"></div>
+              <div class="card-body">
+				<input type="text" placeholder="Please enter title here" class="form-control mb-2" v-model="title">
+                <textarea class="form-control mb-2" placeholder="Please enter body here" rows="10" v-model="body"></textarea>
+				<input type="text" placeholder="Please enter tag here" class="form-control" v-model="tags">
+              </div>
+			  <div class="card-footer text-right">
+				<button class='btn btn-info' @click="save">저장</button>
+			  </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+			<div class="form-row">
+              <div class="form-group col-12">
+                <div class="input-group input-group-sm">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text"><i class="material-icons">vpn_key</i></span>
+                  </div>
+                  <input type="password" placeholder="Please enter posting key here" class="form-control" v-model="wif">
+                  <!--<div class="input-group-append">
+                    <button type="button" class="btn btn-outline-secondary pb-0" @click="getContent">
+                      <i class="material-icons">search</i>
+                    </button>
+                  </div>-->
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"></div>
+              <div class="card-body">
+				<h1 class='preview title mb-2'>{{title}}</h1>
+                <div class='preview mb-2' ref="html_area" v-html='html'></div>
+				<div><span class="badge badge-secondary mr-2" v-for="tag in tagArrays" :key="tag">{{tag}}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /.container -->
+    </div>            
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="//code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdn.steemjs.com/lib/latest/steem.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.min.js"></script>
+	  <script src="//cdn.rawgit.com/showdownjs/showdown/1.8.7/dist/showdown.min.js"></script>
+    <script>
+	  const converter = new showdown.Converter();
+      const app = new Vue({
+        el: '#app',
+        data() {
+          return {
+            wif: window.localStorage.getItem('wif') || '',
+            url: '',
+            //username: window.localStorage.getItem('username') || '',
+            author: '',
+            permlink: '',		
+            parentAuthor: '',	
+            parentPermlin: '',	
+            title: '',
+            body: '',			
+            metadata: {},
+            tags: "",
+          }
+        },
+        computed: {
+		      html() {
+			      return converter.makeHtml(this.body);
+		      },
+		      tagArrays() {
+			      return this.tags.split(',').map(e=>e.trim())
+		      }
+        },
+        methods: {
+          async getContent() {
+            const urls = this.url.split('/');
+            const permlink = urls[urls.length - 1];
+            const username = urls[urls.length - 2].replace(/^@/, '');
+            console.log(username, permlink);
+            const post = await steem.api.getContentAsync(username, permlink);
+            console.log(post)
+            this.title = post.title;
+            this.body = post.body;
+            this.author = post.author;
+            this.permlink = post.permlink;
+            this.parentAuthor = post.parent_author;
+            this.parentPermlink = post.parent_permlink;
+            this.metadata = JSON.parse(post.json_metadata);
+            this.tags = (this.metadata.tags || []).join(', ');
+          },
+          async save() {
+            this.metadata["tags"] = this.tags.split(',').map(e=>e.trim());
+            this.metadata["community"] = "busy";
+            this.metadata["app"] = "busy/2.5.6";
+            if(this.metadata["tags"].indexOf('busy')===-1)
+              this.metadata["tags"].push('busy');
+            console.log(this.metadata);
+            const jsonMetadata = JSON.stringify(this.metadata);
+            if(this.wif) {		
+              console.log('wif')			
+              try {
+                const result = await steem.broadcast.commentAsync(
+                this.wif, 
+                this.parentAuthor, 
+                this.parentPermlink, 
+                this.author, 
+                this.permlink, 
+                this.title, 
+                this.body, 
+                jsonMetadata);
+                console.log(result)
+                window.localStorage.setItem('wif', this.wif),
+                alert('글 수정 성공!');
+              } catch (err) {
+                alert(err.message);
+              }
+            } else if(window.steem_keychain) {
+              console.log('steem_keychain')
+              // function(account, title, body, parent_perm, parent_account, json_metadata, permlink, comment_options, callback) {
+              window.steem_keychain.requestHandshake(() => {
+                window.steem_keychain.requestPost(
+                  this.author,
+                  this.title,
+                  this.body,
+                  this.parentPermlink,
+                  this.parentAuthor,
+                  jsonMetadata,
+                  this.permlink,
+                  '',
+                  (response) => {
+                    console.log(response);
+                    if(response.error) return alert(response.error)
+                    alert('글 수정 성공!');
+                  }
+                );
+              });
+            } else {
+              console.log('nothing')
+            }
+          }
+        }
+      });
+      </script>
+  </body>
+</html>
