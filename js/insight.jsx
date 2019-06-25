@@ -1,4 +1,3 @@
-
 window.steemit_user = ''
 window.steemit_posts = []
 
@@ -12,7 +11,10 @@ class ControllPanel extends React.Component {
     }
 
     reportEvent() {
-        this.props.clickCallback($('#user_id').val());
+        const userId = $('#user_id').val().trim();
+        if(userId) {
+            this.props.clickCallback(userId);
+        }
     }
 
     render() {
@@ -21,7 +23,13 @@ class ControllPanel extends React.Component {
             <h3>Steem Insight</h3>
             <div className="input-group input-group-lg" role="group">
                 <span className="input-group-addon" id="sizing-addon1">@</span>
-                <input type="input" className="form-control" id="user_id" placeholder="Steemit ID here" defaultValue={this.state.userId}/>
+                <input type="input" className="form-control" id="user_id" placeholder="Steemit ID here" defaultValue={this.state.userId} onKeyDown={
+                    evt => {
+                        if(evt.keyCode === 13) {
+                            this.reportEvent();
+                        }
+                    }
+                }/>
                 <span className="input-group-btn">
                     <button className="btn btn-primary" onClick={this.reportEvent}>Go</button>
                 </span> 
@@ -92,13 +100,30 @@ class PostingDetail extends React.Component {
 class Posting extends React.Component {
     constructor(props) {
         super(props);
+
+        // 액세스 토큰이 유효함
+        const s2tCreated = parseInt(window.localStorage.getItem("s2t_created"), 10);
+        let s2tAccessToken = window.localStorage.getItem("s2t_access_token");
+        if (s2tCreated + 3600000 > new Date().getTime()) {
+            console.log("logined");
+        } else {
+            // 토큰 유효 시간 만료
+            s2tAccessToken = null;
+            window.localStorage.removeItem("s2t_created");
+            window.localStorage.removeItem("s2t_access_token");
+        }
+
+        const { posts } = props;
         this.state = {
-            search_keyword: ''
+            search_keyword: '',
+            s2tAccessToken,
+            posts,
         }
         this.download = this.download.bind(this);
         this.textDownload = this.textDownload.bind(this);
         this.detailPopup = this.detailPopup.bind(this);
         this.rawPopup = this.rawPopup.bind(this);
+        this.loadTistory = this.loadTistory.bind(this);
     }
 
     download() {
@@ -155,20 +180,81 @@ class Posting extends React.Component {
         $('#show_detail').modal();
     }
 
+    // callbackTistory(ret) {
+    //     console.log('callbackTistory', ret);
+    // }
+
+    loadTistory() {
+        const url = `https://www.tistory.com/oauth/authorize?client_id=${TISTORY_CLIENT_ID}&redirect_uri=${TISTORY_REDIRECT_URI}&response_type=token`;        
+        const newWindow = window.open(url, "tistory_login_popup", "width=500,height=500");
+
+        const tistoryCallback = (ret) => {
+            // 메인 블로그 정보 가져오기
+            getBlogInfo().then(({blogs}) => {
+                // 대표 블로그 가져오기
+                const [ blog ] = blogs.filter(b => b.default === 'Y');
+                const blogName = blog.name;
+                const postCount = blog.statistics.post;
+                let pageCount = parseInt(postCount / 10, 10);
+                if(postCount % 10 !== 0 ) pageCount += 1; 
+
+                // 티스토리 글 모두 조회
+                Promise.all(Array.apply(null, {length: pageCount}).map(Number.call, Number).map(n => {
+                    return getPostList(blogName, (n + 1))
+                })).then(results => {
+                    // 티스토리글 병합하기
+                    const tistoryPosts = _.flattenDeep(results.map(({posts}) => posts));
+
+                    // 티스토리에서 포스트 제목으로 같은 글 찾기
+                    const _posts = this.state.posts.concat([]).map(item => {
+                        const finded = _.find(tistoryPosts, tistory => {
+                            const steemitTitle = item.title.trim().replace(/\s/g, "");
+                            const tistoryTitle = tistory.title.trim().replace(/\s/g, "");
+                            return (
+                                steemitTitle === tistoryTitle ||
+                                steemitTitle.indexOf(tistoryTitle) !== -1
+                            )
+                        });
+                        if (finded && finded.id) {
+                            return {
+                                ...item,
+                                tistory: {
+                                    ...finded,
+                                    blogName
+                                }
+                            };
+                        }
+                        return {
+                            ...item,
+                            tistory: {}
+                        };
+                    });
+                    console.log(_posts)
+                    this.setState({ posts: _posts })
+                });
+            })
+        }
+
+        newWindow.callback = tistoryCallback;
+    }
+
     handleChange(e) {
         this.setState({ search_keyword: e.target.value });
     }
     render() {
         var posts = [];
         if (this.state.search_keyword.length > 0) {
-            posts = this.props.posts.filter((post) => post.title.includes(this.state.search_keyword) || post.body.includes(this.state.search_keyword));
+            posts = this.state.posts.filter((post) => post.title.includes(this.state.search_keyword) || post.body.includes(this.state.search_keyword));
         } else {
-            posts = this.props.posts;
+            posts = this.state.posts;
         }
         return (
         <div className="container" style={{width: '100%'}}>
             <div>
                 <h2>Posting history</h2>
+                <button className="btn btn-success pull-right" onClick={this.loadTistory}>
+                    <span className="glyphicon glyphicon-cloud-download" aria-hidden="true"></span> Tistory
+                </button>
                 <button className="btn btn-success pull-right" onClick={this.download}>
                     <span className="glyphicon glyphicon-download-alt" aria-hidden="true"></span> JSON
                 </button>
@@ -191,6 +277,12 @@ class Posting extends React.Component {
                     <td>
                         <a href={"http://steemit.com/@" + post.author + "/" + post.permlink} target="blank">{post.title}</a>
                         <button className='btn btn-default btn-rawmodal' onClick={() => this.rawPopup(index)}>Raw</button>
+                        {
+                            (post.tistory) ? <button className='btn btn-default btn-rawmodal btn-xs' onClick={() => {}}>Publish Tistory</button> : null
+                        }
+                        {
+                            (post.tistory && post.tistory.id) ? <button className='btn btn-success btn-rawmodal btn-xs' onClick={() => window.open(post.tistory.postUrl)}>Go Tistory</button> : null
+                        }
                     </td>
                     <td className='right link' onClick={() => this.detailPopup(index)}>{post.net_votes}</td>
                     <td className='right'>{post.children}</td>

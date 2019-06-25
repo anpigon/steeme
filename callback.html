@@ -1,0 +1,18 @@
+<script>
+  if (window.location.hash.startsWith("#access_token=")) {
+    const params = window.location.hash.slice(1).split("&");
+    window.localStorage.setItem("s2t_created", new Date().getTime().toFixed(0)); // 유효시간은 3600초
+    for (const param of params) {
+      const [key, vaule] = param.split("=");
+      window.localStorage.setItem("s2t_" + key, vaule);
+    }
+    // console.log(params);
+    if (window.opener) {
+      // window.opener.location.reload();
+      // window.callbackTistory(true);
+      console.log(window);
+      window.callback(true);
+      window.self.close();
+    }
+  }
+</script>
