@@ -65,32 +65,43 @@ class ActionPanel extends React.Component {
 class PostingDetail extends React.Component {
     constructor(props) {
         super(props);
+
         this.state = {
             html: ''
         }
-        this.publishPost = this.publishPost.bind(this);
-    }
 
-    componentDidMount() {
-        const { post: p, type } = this.props;
-        if(type === 'html_content') {
-            let html = remarkable.render(p.body);
-            // 이미지 url을 img 로 변환
-            html = html.replace(
-                /[^"'(](>)?(https?:\/\/(?:[-a-zA-Z0-9._]*[-a-zA-Z0-9])(?::\d{2,5})?(?:[/?#](?:[^\s"'<>\][()]*[^\s"'<>\][().,])?(?:(?:\.(?:tiff?|jpe?g|gif|png|svg|ico)|ipfs\/[a-z\d]{40,}))))/gi,
-                `$1<img src="$2"/>`
-              );
-            this.setState({ html });
+        this.publishPost = (content) => {
+            console.log('publishPost', this);
+            const { post } = this.props;
+            const { title, permlink, json_metadata, tistory } = post;
+            const tag = JSON.parse(json_metadata).tags.join(",");
+            const { id: postId, blogName } = tistory;
+            publishPost({
+                postId,
+                blogName,
+                title,
+                content,
+                slogan: permlink,
+                tag,
+            }).then(ret => {
+                console.log('publishPost', ret);
+            })
         }
-    }
-
-    publishPost() {
-
     }
 
     render() {
         const { post: p, type } = this.props;
-        console.log({ type });
+        
+        let content = p.body;
+        if(type === 'html_content') {
+            content = remarkable.render(content);
+            // 이미지 url을 img 로 변환
+            content = content.replace(
+                /[^"'(\\/](>)?(https?:\/\/(?:[-a-zA-Z0-9._]*[-a-zA-Z0-9])(?::\d{2,5})?(?:[/?#](?:[^\s"'<>\][()]*[^\s"'<>\][().,])?(?:(?:\.(?:tiff?|jpe?g|gif|png|svg|ico)|ipfs\/[a-z\d]{40,}))))/gi,
+                `$1<img src="$2"/>`
+            );
+        }
+
         const vote_list = p.active_votes.map(upvote => [upvote.voter, upvote.sbd]);
         vote_list.sort(function(a, b) { return b[1] - a[1]; });
         console.log(p);
@@ -102,7 +113,7 @@ class PostingDetail extends React.Component {
                         { p.title }
                         <h3>Body</h3>
                         <pre>
-                        { p.body }
+                        { content }
                         </pre>
                         <h3>Tags</h3>
                         { JSON.parse(p.json_metadata).tags.join(' ') }
@@ -110,11 +121,11 @@ class PostingDetail extends React.Component {
                 }
                 { type == 'html_content' &&
                     <div>
-                        <button className='btn btn-default btn-rawmodal' onClick={() => this.publishPost()}>Publish Tisitory</button>
+                        <button className='btn btn-default btn-primary' onClick={() => this.publishPost(content)}>Publish Tisitory</button>
                         <h3>Title</h3>
                         { p.title }
                         <h3>Body</h3>
-                        <div dangerouslySetInnerHTML={ {__html: this.state.html} } />
+                        <div dangerouslySetInnerHTML={ {__html: content} } />
                         <h3>Tags</h3>
                         { JSON.parse(p.json_metadata).tags.join(' ') }
                     </div>
@@ -275,7 +286,10 @@ class Posting extends React.Component {
                         }
                         return {
                             ...item,
-                            tistory: {}
+                            tistory: {
+                                id: null,
+                                blogName
+                            }
                         };
                     });
                     console.log(_posts)
