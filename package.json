@@ -28,7 +28,7 @@
     "build": "cross-env NODE_PATH=src react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject",
-    "deploy": "cp ./config.dev.js ./dist/js/config.js && ./node_modules/.bin/gh-pages -d dist"
+    "deploy": "cp ./config.prod.js ./dist/js/config.js && ./node_modules/.bin/gh-pages -d dist"
   },
   "devDependencies": {
     "cross-env": "^5.1.4",
