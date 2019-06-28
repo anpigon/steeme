@@ -1,6 +1,14 @@
 window.steemit_user = ''
 window.steemit_posts = []
 
+const remarkable = new Remarkable({
+    html: true, // Remarkable renders first then sanitize runs...
+    breaks: true,
+    linkify: true, // linkify is done locally
+    typographer: false, // https://github.com/jonschlinkert/remarkable/issues/142#issuecomment-221546793
+    quotes: "“”‘’"
+});
+
 class ControllPanel extends React.Component {
     constructor(props) {
         super(props);
@@ -57,23 +65,85 @@ class ActionPanel extends React.Component {
 class PostingDetail extends React.Component {
     constructor(props) {
         super(props);
+
+        this.state = {
+            html: '',
+            showAlert: false,
+        }
+
+        this.showAlert = () => {
+          this.setState({ showAlert: true }, () => {
+            setTimeout(() => {
+              this.setState({ showAlert: false });
+            }, 1000);
+          })
+        }
+
+        this.publishPost = (content) => {
+          // console.log('publishPost', this);
+          const { post, onUpdatePostHandler } = this.props;
+
+          const { title, permlink, json_metadata, tistory } = post;
+          const tag = JSON.parse(json_metadata).tags.join(",");
+          publishPost({
+              postId: tistory.id,
+              blogName: tistory.blogName,
+              title,
+              content,
+              slogan: permlink,
+              tag,
+          }).then(ret => {
+              // console.log('publishPost', ret);
+              post.tistory.id = ret.postId;
+              post.tistory.postUrl = ret.url;
+              onUpdatePostHandler(post);
+              // console.log('post', post);
+              this.showAlert();
+          });
+        }
     }
 
     render() {
-        var p = this.props.post;
-        var vote_list = p.active_votes.map(upvote => [upvote.voter, upvote.sbd]);
+        const { post: p, type } = this.props;
+        const { showAlert } = this.state;
+        
+        let content = p.body;
+        if(type === 'html_content') {
+            content = remarkable.render(content);
+            // 이미지 url을 img 로 변환
+            content = content.replace(
+                /[^"'(\\/](>)?(https?:\/\/(?:[-a-zA-Z0-9._]*[-a-zA-Z0-9])(?::\d{2,5})?(?:[/?#](?:[^\s"'<>\][()]*[^\s"'<>\][().,])?(?:(?:\.(?:tiff?|jpe?g|gif|png|svg|ico)|ipfs\/[a-z\d]{40,}))))/gi,
+                `$1<img src="$2"/>`
+            );
+        }
+
+        const vote_list = p.active_votes.map(upvote => [upvote.voter, upvote.sbd]);
         vote_list.sort(function(a, b) { return b[1] - a[1]; });
         console.log(p);
         return (
             <div>
-                { this.props.type == 'raw_content' &&
+              <div className={`alert alert-success toast ${showAlert ? 'show' : 'hide'}`} role="alert">
+                <b>Completed!</b>
+              </div>
+                { type == 'raw_content' &&
                     <div>
                         <h3>Title</h3>
                         { p.title }
                         <h3>Body</h3>
                         <pre>
-                        { p.body }
+                        { content }
                         </pre>
+                        <h3>Tags</h3>
+                        { JSON.parse(p.json_metadata).tags.join(' ') }
+                    </div>
+                }
+                { type == 'html_content' &&
+                    <div>
+                        <button className='btn btn-default btn-primary' onClick={() => this.publishPost(content)}>Publish Tisitory</button>
+                        <h3>Title</h3>
+                        { p.title }
+                        <h3>Body</h3>
+                        <div dangerouslySetInnerHTML={ {__html: content} } />
                         <h3>Tags</h3>
                         { JSON.parse(p.json_metadata).tags.join(' ') }
                     </div>
@@ -123,7 +193,9 @@ class Posting extends React.Component {
         this.textDownload = this.textDownload.bind(this);
         this.detailPopup = this.detailPopup.bind(this);
         this.rawPopup = this.rawPopup.bind(this);
+        this.htmlPopup = this.htmlPopup.bind(this);
         this.loadTistory = this.loadTistory.bind(this);
+        this.onUpdatePostHandler = this.onUpdatePostHandler.bind(this);
     }
 
     download() {
@@ -180,6 +252,30 @@ class Posting extends React.Component {
         $('#show_detail').modal();
     }
 
+    onUpdatePostHandler(post) {
+      this.setState(prevState => {
+        return prevState.posts.map(p => {
+          if(post.post_id === p.post_id) {
+            return post;
+          }
+          return p;
+        });
+      }, () => {
+
+      })
+    }
+
+    htmlPopup(post) {
+        ReactDOM.render(
+            <PostingDetail 
+              post={post} 
+              type='html_content' 
+              onUpdatePostHandler={this.onUpdatePostHandler} />,
+            document.getElementById('show_detail_area')
+        );
+        $('#show_detail').modal();
+    }
+
     // callbackTistory(ret) {
     //     console.log('callbackTistory', ret);
     // }
@@ -187,8 +283,7 @@ class Posting extends React.Component {
     loadTistory() {
         const url = `https://www.tistory.com/oauth/authorize?client_id=${TISTORY_CLIENT_ID}&redirect_uri=${TISTORY_REDIRECT_URI}&response_type=token`;        
         const newWindow = window.open(url, "tistory_login_popup", "width=500,height=500");
-
-        const tistoryCallback = (ret) => {
+        newWindow.onCallback = (ret) => {
             // 메인 블로그 정보 가져오기
             getBlogInfo().then(({blogs}) => {
                 // 대표 블로그 가져오기
@@ -203,7 +298,7 @@ class Posting extends React.Component {
                     return getPostList(blogName, (n + 1))
                 })).then(results => {
                     // 티스토리글 병합하기
-                    const tistoryPosts = _.flattenDeep(results.map(({posts}) => posts));
+                    const tistoryPosts = _.flattenDeep(results.map(({ posts }) => posts));
 
                     // 티스토리에서 포스트 제목으로 같은 글 찾기
                     const _posts = this.state.posts.concat([]).map(item => {
@@ -226,33 +321,34 @@ class Posting extends React.Component {
                         }
                         return {
                             ...item,
-                            tistory: {}
+                            tistory: {
+                                id: null,
+                                blogName
+                            }
                         };
                     });
-                    console.log(_posts)
+                    // console.log('posts:', _posts)
                     this.setState({ posts: _posts })
                 });
             })
         }
-
-        newWindow.callback = tistoryCallback;
     }
 
     handleChange(e) {
         this.setState({ search_keyword: e.target.value });
     }
     render() {
-        var posts = [];
+        let posts = [];
         if (this.state.search_keyword.length > 0) {
             posts = this.state.posts.filter((post) => post.title.includes(this.state.search_keyword) || post.body.includes(this.state.search_keyword));
         } else {
             posts = this.state.posts;
         }
         return (
-        <div className="container" style={{width: '100%'}}>
+          <div className="container" style={{width: '100%'}}>
             <div>
                 <h2>Posting history</h2>
-                <button className="btn btn-success pull-right" onClick={this.loadTistory}>
+                <button className="btn btn-success pull-left" onClick={this.loadTistory}>
                     <span className="glyphicon glyphicon-cloud-download" aria-hidden="true"></span> Tistory
                 </button>
                 <button className="btn btn-success pull-right" onClick={this.download}>
@@ -272,28 +368,32 @@ class Posting extends React.Component {
                 <tr><td>Title</td><td className='right'>Vote</td><td className='right'>Cmt</td><td className='right'>SBD</td><td className='right'>Rstm</td><td className='right'>Created</td></tr>
             </thead>
             <tbody>
-                {posts.map((post ,index) =>
-                <tr key={index}>
-                    <td>
+              {
+                posts.map((post ,index) => {                  
+                  return (
+                    <tr key={index}>
+                      <td>
                         <a href={"http://steemit.com/@" + post.author + "/" + post.permlink} target="blank">{post.title}</a>
                         <button className='btn btn-default btn-rawmodal' onClick={() => this.rawPopup(index)}>Raw</button>
                         {
-                            (post.tistory) ? <button className='btn btn-default btn-rawmodal btn-xs' onClick={() => {}}>Publish Tistory</button> : null
+                          (post.tistory) ? <button className='btn btn-default btn-rawmodal btn-xs' onClick={() => this.htmlPopup(post)}>Publish Tistory</button> : null
                         }
                         {
-                            (post.tistory && post.tistory.id) ? <button className='btn btn-success btn-rawmodal btn-xs' onClick={() => window.open(post.tistory.postUrl)}>Go Tistory</button> : null
+                          (post.tistory && post.tistory.id) ? <button className='btn btn-success btn-rawmodal btn-xs' onClick={() => window.open(post.tistory.postUrl)}>View Tistory</button> : null
                         }
-                    </td>
-                    <td className='right link' onClick={() => this.detailPopup(index)}>{post.net_votes}</td>
-                    <td className='right'>{post.children}</td>
-                    <td className='right link' onClick={() => this.detailPopup(index)}>{(post.payout||0).toFixed(2)}</td>
-                    <td className='right link' onClick={() => this.detailPopup(index)}>{(post.reblogged_by||[]).length}</td>
-                    <td className="hardshell">{post.created.split('T')[0]}</td>
-                </tr>
-                )}
+                      </td>
+                      <td className='right link' onClick={() => this.detailPopup(index)}>{post.net_votes}</td>
+                      <td className='right'>{post.children}</td>
+                      <td className='right link' onClick={() => this.detailPopup(index)}>{(post.payout||0).toFixed(2)}</td>
+                      <td className='right link' onClick={() => this.detailPopup(index)}>{(post.reblogged_by||[]).length}</td>
+                      <td className="hardshell">{post.created.split('T')[0]}</td>
+                      </tr>
+                    )
+                }
+              )}                
             </tbody>
             </table>
-        </div>
+          </div>
         );
     }
 }
