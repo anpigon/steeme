@@ -283,7 +283,7 @@ class Posting extends React.Component {
     loadTistory() {
         const url = `https://www.tistory.com/oauth/authorize?client_id=${TISTORY_CLIENT_ID}&redirect_uri=${TISTORY_REDIRECT_URI}&response_type=token`;        
         const newWindow = window.open(url, "tistory_login_popup", "width=500,height=500");
-        newWindow.onCallback = (ret) => {
+        newWindow.oncallback = (ret) => {
             // 메인 블로그 정보 가져오기
             getBlogInfo().then(({blogs}) => {
                 // 대표 블로그 가져오기
