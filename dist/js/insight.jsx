@@ -67,30 +67,45 @@ class PostingDetail extends React.Component {
         super(props);
 
         this.state = {
-            html: ''
+            html: '',
+            showAlert: false,
+        }
+
+        this.showAlert = () => {
+          this.setState({ showAlert: true }, () => {
+            setTimeout(() => {
+              this.setState({ showAlert: false });
+            }, 1000);
+          })
         }
 
         this.publishPost = (content) => {
-            console.log('publishPost', this);
-            const { post } = this.props;
-            const { title, permlink, json_metadata, tistory } = post;
-            const tag = JSON.parse(json_metadata).tags.join(",");
-            const { id: postId, blogName } = tistory;
-            publishPost({
-                postId,
-                blogName,
-                title,
-                content,
-                slogan: permlink,
-                tag,
-            }).then(ret => {
-                console.log('publishPost', ret);
-            })
+          // console.log('publishPost', this);
+          const { post, onUpdatePostHandler } = this.props;
+
+          const { title, permlink, json_metadata, tistory } = post;
+          const tag = JSON.parse(json_metadata).tags.join(",");
+          publishPost({
+              postId: tistory.id,
+              blogName: tistory.blogName,
+              title,
+              content,
+              slogan: permlink,
+              tag,
+          }).then(ret => {
+              // console.log('publishPost', ret);
+              post.tistory.id = ret.postId;
+              post.tistory.postUrl = ret.url;
+              onUpdatePostHandler(post);
+              // console.log('post', post);
+              this.showAlert();
+          });
         }
     }
 
     render() {
         const { post: p, type } = this.props;
+        const { showAlert } = this.state;
         
         let content = p.body;
         if(type === 'html_content') {
@@ -107,6 +122,9 @@ class PostingDetail extends React.Component {
         console.log(p);
         return (
             <div>
+              <div className={`alert alert-success toast ${showAlert ? 'show' : 'hide'}`} role="alert">
+                <b>Completed!</b>
+              </div>
                 { type == 'raw_content' &&
                     <div>
                         <h3>Title</h3>
@@ -177,6 +195,7 @@ class Posting extends React.Component {
         this.rawPopup = this.rawPopup.bind(this);
         this.htmlPopup = this.htmlPopup.bind(this);
         this.loadTistory = this.loadTistory.bind(this);
+        this.onUpdatePostHandler = this.onUpdatePostHandler.bind(this);
     }
 
     download() {
@@ -233,9 +252,25 @@ class Posting extends React.Component {
         $('#show_detail').modal();
     }
 
-    htmlPopup(index) {
+    onUpdatePostHandler(post) {
+      this.setState(prevState => {
+        return prevState.posts.map(p => {
+          if(post.post_id === p.post_id) {
+            return post;
+          }
+          return p;
+        });
+      }, () => {
+
+      })
+    }
+
+    htmlPopup(post) {
         ReactDOM.render(
-            <PostingDetail post={this.props.posts[index]} type='html_content' />,
+            <PostingDetail 
+              post={post} 
+              type='html_content' 
+              onUpdatePostHandler={this.onUpdatePostHandler} />,
             document.getElementById('show_detail_area')
         );
         $('#show_detail').modal();
@@ -263,7 +298,7 @@ class Posting extends React.Component {
                     return getPostList(blogName, (n + 1))
                 })).then(results => {
                     // 티스토리글 병합하기
-                    const tistoryPosts = _.flattenDeep(results.map(({posts}) => posts));
+                    const tistoryPosts = _.flattenDeep(results.map(({ posts }) => posts));
 
                     // 티스토리에서 포스트 제목으로 같은 글 찾기
                     const _posts = this.state.posts.concat([]).map(item => {
@@ -292,7 +327,7 @@ class Posting extends React.Component {
                             }
                         };
                     });
-                    console.log(_posts)
+                    // console.log('posts:', _posts)
                     this.setState({ posts: _posts })
                 });
             })
@@ -303,14 +338,14 @@ class Posting extends React.Component {
         this.setState({ search_keyword: e.target.value });
     }
     render() {
-        var posts = [];
+        let posts = [];
         if (this.state.search_keyword.length > 0) {
             posts = this.state.posts.filter((post) => post.title.includes(this.state.search_keyword) || post.body.includes(this.state.search_keyword));
         } else {
             posts = this.state.posts;
         }
         return (
-        <div className="container" style={{width: '100%'}}>
+          <div className="container" style={{width: '100%'}}>
             <div>
                 <h2>Posting history</h2>
                 <button className="btn btn-success pull-left" onClick={this.loadTistory}>
@@ -333,28 +368,32 @@ class Posting extends React.Component {
                 <tr><td>Title</td><td className='right'>Vote</td><td className='right'>Cmt</td><td className='right'>SBD</td><td className='right'>Rstm</td><td className='right'>Created</td></tr>
             </thead>
             <tbody>
-                {posts.map((post ,index) =>
-                <tr key={index}>
-                    <td>
+              {
+                posts.map((post ,index) => {                  
+                  return (
+                    <tr key={index}>
+                      <td>
                         <a href={"http://steemit.com/@" + post.author + "/" + post.permlink} target="blank">{post.title}</a>
                         <button className='btn btn-default btn-rawmodal' onClick={() => this.rawPopup(index)}>Raw</button>
                         {
-                            (post.tistory) ? <button className='btn btn-default btn-rawmodal btn-xs' onClick={() => this.htmlPopup(index)}>Publish Tistory</button> : null
+                          (post.tistory) ? <button className='btn btn-default btn-rawmodal btn-xs' onClick={() => this.htmlPopup(post)}>Publish Tistory</button> : null
                         }
                         {
-                            (post.tistory && post.tistory.id) ? <button className='btn btn-success btn-rawmodal btn-xs' onClick={() => window.open(post.tistory.postUrl)}>View Tistory</button> : null
+                          (post.tistory && post.tistory.id) ? <button className='btn btn-success btn-rawmodal btn-xs' onClick={() => window.open(post.tistory.postUrl)}>View Tistory</button> : null
                         }
-                    </td>
-                    <td className='right link' onClick={() => this.detailPopup(index)}>{post.net_votes}</td>
-                    <td className='right'>{post.children}</td>
-                    <td className='right link' onClick={() => this.detailPopup(index)}>{(post.payout||0).toFixed(2)}</td>
-                    <td className='right link' onClick={() => this.detailPopup(index)}>{(post.reblogged_by||[]).length}</td>
-                    <td className="hardshell">{post.created.split('T')[0]}</td>
-                </tr>
-                )}
+                      </td>
+                      <td className='right link' onClick={() => this.detailPopup(index)}>{post.net_votes}</td>
+                      <td className='right'>{post.children}</td>
+                      <td className='right link' onClick={() => this.detailPopup(index)}>{(post.payout||0).toFixed(2)}</td>
+                      <td className='right link' onClick={() => this.detailPopup(index)}>{(post.reblogged_by||[]).length}</td>
+                      <td className="hardshell">{post.created.split('T')[0]}</td>
+                      </tr>
+                    )
+                }
+              )}                
             </tbody>
             </table>
-        </div>
+          </div>
         );
     }
 }

@@ -60,5 +60,6 @@ function publishPost({
   form.append("category", categoryId);
   if (postId) form.append("postId", postId);
 
-  return client.post(request, form);
+  return client.post(request, form).then(r => r.data.tistory); // {postId: "76", url: "https://anpigon.tistory.com/76"}
+  // .catch(error => console.log(error));
 }
